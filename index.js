@@ -7,7 +7,12 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message],
 });
 
-const SCRUM_QUESTIONS = ['1️⃣ 어제 무엇을 했나요?', '2️⃣ 오늘 무엇을 할 예정인가요?', '3️⃣ 진행 중 어려운 점이 있나요?'];
+const SCRUM_QUESTIONS = [
+  '😢 어제 완료하지 못한 일을 작성해주세요',
+  '🤔 오늘 해야 할 일을 작성해주세요.',
+  '💡 공유하고 싶은 내용이 있다면 작성해주세요.',
+  '⚡️ 컨디션 체크',
+];
 
 const scrumSessions = new Map(); // 진행 중인 세션
 const scrumResults = new Map(); // 완료된 답변 모음
@@ -16,7 +21,8 @@ const scrumResults = new Map(); // 완료된 답변 모음
 async function startScrumForUser(user) {
   try {
     scrumSessions.set(user.id, { answers: [], user });
-    await user.send(`📋 **Daily Scrum 시작!**\n\n${SCRUM_QUESTIONS[0]}`);
+    await user.send(`
+      안녕하세요, ${user.tag}님!\n${new Date().getMonth() + 1}월 ${new Date().getDate()}일 Daily Scrum 을 시작하겠습니다😄\n\n**${SCRUM_QUESTIONS[0]}**`);
     console.log(`📨 ${user.tag} 스크럼 시작`);
   } catch (err) {
     console.error(`❌ ${user.tag} DM 전송 실패 (DM 차단 여부 확인):`, err.message);
@@ -57,7 +63,8 @@ async function postSummary() {
 
   // 결과가 없으면 안내 메시지
   if (scrumResults.size === 0) {
-    await channel.send(`📋 **${today} Daily Scrum**\n\n오늘 응답한 멤버가 없습니다.`);
+    await channel.send(`
+      🗓️ ${new Date().getMonth() + 1}월 ${new Date().getDate()}일 Daily Scrum 요약\n\n오늘 응답한 멤버가 없습니다.`);
     return;
   }
 
@@ -68,9 +75,10 @@ async function postSummary() {
       .setTitle(`🧑‍💻 ${result.username}`)
       .setDescription(`📅 ${today} Daily Scrum`)
       .addFields(
-        { name: '📌 어제 한 일', value: result.answers[0] || '미응답' },
-        { name: '📌 오늘 할 일', value: result.answers[1] || '미응답' },
-        { name: '📌 어려운 점', value: result.answers[2] || '미응답' },
+        { name: '😢 어제 한 일', value: result.answers[0] || '미응답' },
+        { name: '🤔 오늘 할 일', value: result.answers[1] || '미응답' },
+        { name: '💡 공유할 내용', value: result.answers[2] || '미응답' },
+        { name: '⚡️ 컨디션', value: result.answers[3] || '미응답' },
       )
       .setTimestamp();
 
@@ -96,7 +104,7 @@ client.on('messageCreate', async (message) => {
     await message.channel.send(SCRUM_QUESTIONS[session.answers.length]);
   } else {
     // 완료 처리
-    await message.channel.send('✅ 스크럼 완료! 고생하셨습니다 😊');
+    await message.channel.send(`✅ Daily Scrum 완료! 오늘도 화이팅입니다💪🏻`);
 
     // 결과 저장
     scrumResults.set(userId, {
