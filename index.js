@@ -2,6 +2,9 @@ require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, EmbedBuilder } = require('discord.js');
 const cron = require('node-cron');
 
+// 날짜별 스레드 캐싱 (하루에 스레드 1개만 생성)
+let dailyThreadCache = { date: '', threadId: '' };
+
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.MessageContent],
   partials: [Partials.Channel, Partials.Message],
@@ -45,20 +48,51 @@ async function startDailyScrum() {
   }
 }
 
-// 개별 응답 완료 시 채널에 즉시 게시
-async function postUserResult(username, answers) {
-  const channel = await client.channels.fetch(process.env.SUMMARY_CHANNEL_ID);
-
+// 날짜별 스레드 조회 또는 생성
+async function getOrCreateDailyThread(channel) {
   const today = new Date().toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',
   });
+  const threadName = `${today} Daily Scrum`;
+
+  // 캐시에 오늘 날짜 스레드가 있으면 재사용
+  if (dailyThreadCache.date === today) {
+    try {
+      const cachedThread = await client.channels.fetch(dailyThreadCache.threadId);
+      if (cachedThread) return cachedThread;
+    } catch {
+      // 캐시된 스레드가 유효하지 않으면 새로 생성
+    }
+  }
+
+  // 활성 스레드 목록에서 오늘 날짜 스레드 탐색
+  const activeThreads = await channel.threads.fetchActive();
+  const existing = activeThreads.threads.find((t) => t.name === threadName);
+  if (existing) {
+    dailyThreadCache = { date: today, threadId: existing.id };
+    return existing;
+  }
+
+  // 없으면 새 스레드 생성 (포럼 채널은 message 파라미터 필수)
+  const thread = await channel.threads.create({
+    name: threadName,
+    message: { content: `📋 **${threadName}** 스크럼 결과를 모아봅니다.` },
+  });
+  dailyThreadCache = { date: today, threadId: thread.id };
+  console.log(`🧵 스레드 생성: ${threadName}`);
+  return thread;
+}
+
+// 개별 응답 완료 시 스레드에 즉시 게시
+async function postUserResult(username, answers) {
+  const channel = await client.channels.fetch(process.env.SUMMARY_CHANNEL_ID);
+  const thread = await getOrCreateDailyThread(channel);
 
   const embed = new EmbedBuilder()
     .setColor(0x5865f2)
     .setTitle(`🧑‍💻 ${username}`)
-    .setDescription(`${today} Daily Scrum`)
     .addFields(
       { name: '😢 어제 못한 일', value: answers[0] },
       { name: '🤔 오늘 할 일', value: answers[1] },
@@ -68,8 +102,8 @@ async function postUserResult(username, answers) {
     )
     .setTimestamp();
 
-  await channel.send({ embeds: [embed] });
-  console.log(`📢 ${username} 스크럼 결과 채널 게시 완료`);
+  await thread.send({ embeds: [embed] });
+  console.log(`📢 ${username} 스크럼 결과 스레드 게시 완료`);
 }
 
 // 미응답자 리마인더 DM 발송
@@ -107,8 +141,12 @@ client.on('messageCreate', async (message) => {
     scrumSessions.delete(userId);
     console.log(`✅ ${message.author.displayName} 스크럼 완료`);
 
-    // 응답 완료 즉시 채널에 게시
-    await postUserResult(message.author.displayName, session.answers);
+    // 응답 완료 즉시 스레드에 게시
+    try {
+      await postUserResult(message.author.displayName, session.answers);
+    } catch (err) {
+      console.error(`❌ ${message.author.displayName} 스크럼 결과 게시 실패:`, err.message, err.code ?? '');
+    }
   }
 });
 
@@ -129,10 +167,8 @@ client.once('ready', () => {
   console.log('⏰ 스케줄러 등록 완료 (평일 오전 10시 스크럼 시작 / 오후 2시 리마인더)');
   */
 
-  /*
   // ✅ 테스트용: 바로 스크럼 시작 (테스트 후 이 줄 삭제!)
-  startDailyScrum();
-  */
+  // startDailyScrum();
 });
 
 client.login(process.env.BOT_TOKEN);
