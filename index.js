@@ -150,7 +150,7 @@ client.on('messageCreate', async (message) => {
   }
 });
 
-client.once('ready', () => {
+client.once('ready', async () => {
   console.log(`✅ ${client.user.tag} 로그인 성공!`);
 
   // 매일 오전 10시 자동 실행 (평일만, 한국 시간 KST)
@@ -167,8 +167,11 @@ client.once('ready', () => {
   console.log('⏰ 스케줄러 등록 완료 (평일 오전 10시 스크럼 시작 / 오후 2시 리마인더)');
   */
 
-  // ✅ 테스트용: 바로 스크럼 시작 (테스트 후 이 줄 삭제!)
-  // startDailyScrum();
+  // ✅ 테스트용: TEST_USER_ID 유저에게만 스크럼 시작
+  // if (process.env.TEST_USER_ID) {
+  //   const testUser = await client.users.fetch(process.env.TEST_USER_ID);
+  //   await startScrumForUser(testUser);
+  // }
 });
 
 client.login(process.env.BOT_TOKEN);
