@@ -55,7 +55,7 @@ async function getOrCreateDailyThread(channel) {
     month: 'long',
     day: 'numeric',
   });
-  const threadName = `${today} Daily Scrum`;
+  const threadName = `🧑🏻‍💻${today} Daily Scrum`;
 
   // 캐시에 오늘 날짜 스레드가 있으면 재사용
   if (dailyThreadCache.date === today) {
