@@ -168,10 +168,10 @@ client.once('ready', async () => {
   */
 
   // ✅ 테스트용: TEST_USER_ID 유저에게만 스크럼 시작
-  if (process.env.TEST_USER_ID) {
-    const testUser = await client.users.fetch(process.env.TEST_USER_ID);
-    await startScrumForUser(testUser);
-  }
+  // if (process.env.TEST_USER_ID) {
+  //   const testUser = await client.users.fetch(process.env.TEST_USER_ID);
+  //   await startScrumForUser(testUser);
+  // }
 });
 
 client.on('error', (err) => {
