@@ -55,7 +55,7 @@ async function getOrCreateDailyThread(channel) {
     month: 'long',
     day: 'numeric',
   });
-  const threadName = `🧑🏻‍💻${today} Daily Scrum`;
+  const threadName = `🧑🏻‍💻 ${today} Daily Scrum`;
 
   // 캐시에 오늘 날짜 스레드가 있으면 재사용
   if (dailyThreadCache.date === today) {
@@ -78,7 +78,7 @@ async function getOrCreateDailyThread(channel) {
   // 없으면 새 스레드 생성 (포럼 채널은 message 파라미터 필수)
   const thread = await channel.threads.create({
     name: threadName,
-    message: { content: `📋 **${threadName}** 스크럼 결과를 모아봅니다.` },
+    message: { content: `오늘의 스크럼 결과를 모아봅니다.` },
   });
   dailyThreadCache = { date: today, threadId: thread.id };
   console.log(`🧵 스레드 생성: ${threadName}`);
